@@ -4,6 +4,8 @@ from openpyxl.drawing.image import Image
 import os
 from database import crear_bd
 import sqlite3
+from fastapi.responses import FileResponse
+from openpyxl import Workbook
 
 
 app = FastAPI()
@@ -127,6 +129,55 @@ async def registrar(
     return {
         "mensaje": "Registro guardado"
     }
+@app.get("/exportar_excel")
+def exportar_excel():
+
+    conn = sqlite3.connect("presentismo.db")
+
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            nombre,
+            fecha,
+            hora,
+            ubicacion,
+            foto
+        FROM asistencias
+        ORDER BY id DESC
+    """)
+
+    registros = cursor.fetchall()
+
+    conn.close()
+
+    nombre_excel = "reporte_asistencias.xlsx"
+
+    wb = Workbook()
+    ws = wb.active
+
+    ws.title = "Asistencias"
+
+    ws.append([
+        "Nombre",
+        "Fecha",
+        "Hora",
+        "Ubicacion",
+        "Foto"
+    ])
+
+    for registro in registros:
+
+        ws.append(registro)
+
+    wb.save(nombre_excel)
+
+    return FileResponse(
+        nombre_excel,
+        filename=nombre_excel,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    
 @app.get("/historial")
 def historial():
 
